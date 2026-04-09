@@ -62,6 +62,118 @@ max_epochs=50
 - Put model weights under `{workspace_path}/models/llms/{model_id}` (see `src/models/model_base.py`).
 - `Qwen3-VL-Instruct` is not a drop-in replacement in this repo because current training/inference is text-only `AutoModelForCausalLM`; VL usage requires multimodal refactor (processor + image inputs + multimodal generation path).
 
+## 详细流程（中文）：Qwen 模型下载、放置路径、训练命令、数据预处理
+
+### 1) 结论先行
+- 本仓库当前是文本推理流程（`AutoModelForCausalLM`），不是多模态 VL 流程，直接切 `Qwen3-VL-Instruct` 不能开箱即用。
+- 数学文本任务建议直接使用 `Qwen3-1.7B`。
+
+### 2) Qwen 模型在哪里下载、放到哪里
+推荐从 Hugging Face 下载（示例：`Qwen/Qwen3-1.7B`）。
+
+```bash
+huggingface-cli login
+mkdir -p /home/runner/work/colar/colar/models/llms/Qwen3-1.7B
+huggingface-cli download Qwen/Qwen3-1.7B \
+  --local-dir /home/runner/work/colar/colar/models/llms/Qwen3-1.7B
+```
+
+模型目录规则（代码中固定）：
+- `{workspace_path}/models/llms/{model_id}`
+- 例如：`/home/runner/work/colar/colar/models/llms/Qwen3-1.7B`
+
+### 3) 训练与评测命令（包含 workspace_path）
+```bash
+cd /home/runner/work/colar/colar
+python run.py \
+  --devices=0 \
+  --model=colar \
+  --dataset=qsa \
+  --workspace_path=/home/runner/work/colar/colar \
+  --do_test \
+  dataset_name=gsm \
+  model_id=Qwen3-1.7B \
+  batch_size=256
+```
+
+仅测试：
+```bash
+python run.py \
+  --workspace_path=/home/runner/work/colar/colar \
+  --test_ckpt_path=/path/to/your.ckpt
+```
+
+### 4) 训练前最终数据格式（必须满足）
+训练数据读取目录为：
+- `{workspace_path}/datasets/text_reasoning/{dataset_name}/train.json`
+- `{workspace_path}/datasets/text_reasoning/{dataset_name}/val.json`
+- `{workspace_path}/datasets/text_reasoning/{dataset_name}/test.json`
+
+每个 JSON 文件必须是 list，单条样本至少包含：
+- `question`: string
+- `steps`: list[string]
+- `answer`: string
+
+可选字段如 `id` / `idx` 可以保留。
+
+### 5) 各预处理脚本支持的“原始文件格式”
+脚本目录：`/home/runner/work/colar/colar/data_preprocessing`
+
+- `gsm8k-nl.py`  
+  原始文件：`train.jsonl`, `test.jsonl`  
+  单行字段：`question`, `cot`, `answer`
+
+- `math500.py`  
+  原始文件：`train.jsonl`, `test.jsonl`  
+  单行字段：`unique_id`, `problem`, `solution`, `answer`
+
+- `gsmhard.py`  
+  原始文件：`gsmhardv2.jsonl`  
+  字段：`input`, `code`, `target`（产出 `test.json`）
+
+- `svamp.py`  
+  原始文件：`SVAMP.json`  
+  字段：`Body`, `Question`, `Equation`, `Answer`（产出 `test.json`）
+
+- `multiarith.py`  
+  原始文件：`MultiArith.json`  
+  字段：`sQuestion`, `lEquations`, `lSolutions`（产出 `test.json`）
+
+- `math.py`  
+  原始目录结构：`train/*/*.json` 与 `test/*/*.json`  
+  单文件字段：`problem`, `solution`, `level`, `type`
+
+- `gqpa.py`  
+  依赖 Hugging Face dataset（`gpqa_extended`）并写出统一 JSON。
+
+### 6) 数据路径建议（统一到 workspace_path 下）
+建议统一放置到：
+- `/home/runner/work/colar/colar/datasets/text_reasoning/{dataset_name}/`
+
+例如 `dataset_name=gsm`：
+- `/home/runner/work/colar/colar/datasets/text_reasoning/gsm/train.json`
+- `/home/runner/work/colar/colar/datasets/text_reasoning/gsm/val.json`
+- `/home/runner/work/colar/colar/datasets/text_reasoning/gsm/test.json`
+
+这样和训练命令中的 `--workspace_path=/home/runner/work/colar/colar` 完全一致。
+
+### 7) 预处理脚本怎么执行（示例）
+在仓库根目录执行：
+```bash
+cd /home/runner/work/colar/colar/data_preprocessing
+python math500.py
+```
+
+注意：当前预处理脚本里大量使用了相对路径（如 `../../../datasets/...`）。  
+如果你直接使用仓库内路径，建议把脚本中的 `p` / `dataset_dir` / `d` 改成绝对路径，或在执行后把产出的 `train.json/val.json/test.json` 复制到训练读取目录：
+
+```bash
+mkdir -p /home/runner/work/colar/colar/datasets/text_reasoning/gsm
+cp /your/generated/train.json /home/runner/work/colar/colar/datasets/text_reasoning/gsm/train.json
+cp /your/generated/val.json   /home/runner/work/colar/colar/datasets/text_reasoning/gsm/val.json
+cp /your/generated/test.json  /home/runner/work/colar/colar/datasets/text_reasoning/gsm/test.json
+```
+
 # Evaluation:
 ```
 python run.py \
