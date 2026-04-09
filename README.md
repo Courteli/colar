@@ -48,13 +48,19 @@ python run.py \
 --load_ckpt_path=/path/to/pretrained/cot_model.ckpt \
 --log_suffix=bs256_lr1e-4_and_so_on \
 dataset_name=gsm \
-model_id=Llama-3.2-1B-Instruct \
+model_id=Qwen3-1.7B \
 batch_size=256 \
 max_compression_factor=5 \
 compression_factor=5 \
 max_new_tokens=16 \
 max_epochs=50
 ```
+
+## Switch base model
+- The default model configs under `/home/runner/work/colar/colar/src/configs/models/` now use `Qwen3-1.7B`.
+- You can override from CLI, e.g. `model_id=Qwen3-1.7B` or `model_id=Llama-3.2-1B-Instruct`.
+- Put model weights under `{workspace_path}/models/llms/{model_id}` (see `/home/runner/work/colar/colar/src/models/model_base.py`).
+- `Qwen3-VL-Instruct` is not a drop-in replacement in this repo because current training/inference is text-only `AutoModelForCausalLM`; VL usage requires multimodal refactor (processor + image inputs + multimodal generation path).
 
 # Evaluation:
 ```

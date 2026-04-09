@@ -3,7 +3,8 @@ seed: ~
 model:
   target: src.models.coconut.LitCoconut
   model_kwargs:
-    model_id: Llama-3.2-1B-Instruct
+    model_id: Qwen3-1.7B
+    # model_id: Llama-3.2-1B-Instruct
     # model_id: DeepSeek-R1-Distill-Qwen-1.5B
     sft_method: coconut
 
