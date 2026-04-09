@@ -57,9 +57,9 @@ max_epochs=50
 ```
 
 ## Switch base model
-- The default model configs under `/home/runner/work/colar/colar/src/configs/models/` now use `Qwen3-1.7B`.
+- The default model configs under `src/configs/models/` now use `Qwen3-1.7B`.
 - You can override from CLI, e.g. `model_id=Qwen3-1.7B` or `model_id=Llama-3.2-1B-Instruct`.
-- Put model weights under `{workspace_path}/models/llms/{model_id}` (see `/home/runner/work/colar/colar/src/models/model_base.py`).
+- Put model weights under `{workspace_path}/models/llms/{model_id}` (see `src/models/model_base.py`).
 - `Qwen3-VL-Instruct` is not a drop-in replacement in this repo because current training/inference is text-only `AutoModelForCausalLM`; VL usage requires multimodal refactor (processor + image inputs + multimodal generation path).
 
 # Evaluation:
